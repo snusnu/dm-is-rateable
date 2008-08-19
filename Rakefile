@@ -21,7 +21,7 @@ GEM_DEPENDENCIES = [
 ]
 
 GEM_CLEAN = ["log", "pkg"]
-GEM_EXTRAS = { :has_rdoc => false, :extra_rdoc_files => %w[ README.txt LICENSE TODO ] }
+GEM_EXTRAS = { :has_rdoc => false, :extra_rdoc_files => %w[ README.textile LICENSE TODO ] }
 
 PROJECT_NAME = "datamapper"
 PROJECT_URL  = "http://github.com/snusnu/dm-is-rateable/tree/master"
