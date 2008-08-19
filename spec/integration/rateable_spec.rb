@@ -106,12 +106,14 @@ if HAS_SQLITE3 || HAS_MYSQL || HAS_POSTGRES
     # --------------------------------------------------------------------------------------------------
     # --------------------------------------------------------------------------------------------------
 
-    describe "every timestamped rating", :shared => true do
+    describe "every anonymized timestamped rating", :shared => true do
     
       it "should keep track of timestamps" do
-        @t1.should be_kind_of(DataMapper::Timestamp)
-        @t1.should respond_to(:created_at)
-        @t1.should respond_to(:updated_at)
+        if @t1.rating_enabled?
+          @t1.rate(5)
+          @t1.ratings[0].should respond_to(:created_at)
+          @t1.ratings[0].should respond_to(:updated_at)
+        end
       end
   
     end
@@ -119,12 +121,44 @@ if HAS_SQLITE3 || HAS_MYSQL || HAS_POSTGRES
     # --------------------------------------------------------------------------------------------------
     # --------------------------------------------------------------------------------------------------
 
-    describe "every non-timestamped rating", :shared => true do
+    describe "every anonymized non-timestamped rating", :shared => true do
     
       it "should not keep track of timestamps" do
-        @t1.should_not be_kind_of(DataMapper::Timestamp)
-        @t1.should_not respond_to(:created_at)
-        @t1.should_not respond_to(:updated_at)
+        if @t1.rating_enabled?
+          @t1.rate(5)
+          @t1.ratings[0].should_not respond_to(:created_at)
+          @t1.ratings[0].should_not respond_to(:updated_at)
+        end
+      end
+  
+    end
+       
+    # --------------------------------------------------------------------------------------------------
+    # --------------------------------------------------------------------------------------------------
+
+    describe "every personalized timestamped rating", :shared => true do
+    
+      it "should keep track of timestamps" do
+        if @t1.rating_enabled?
+          @t1.rate(5, @u1)
+          @t1.ratings[0].should respond_to(:created_at)
+          @t1.ratings[0].should respond_to(:updated_at)
+        end
+      end
+  
+    end
+    
+    # --------------------------------------------------------------------------------------------------
+    # --------------------------------------------------------------------------------------------------
+
+    describe "every personalized non-timestamped rating", :shared => true do
+    
+      it "should not keep track of timestamps" do
+        if @t1.rating_enabled?
+          @t1.rate(5, @u1)
+          @t1.ratings[0].should_not respond_to(:created_at)
+          @t1.ratings[0].should_not respond_to(:updated_at)
+        end
       end
   
     end
@@ -374,7 +408,7 @@ if HAS_SQLITE3 || HAS_MYSQL || HAS_POSTGRES
     
       it_should_behave_like "every enabled personalized rating"
       it_should_behave_like "every togglable rating"
-      it_should_behave_like "every timestamped rating"
+      it_should_behave_like "every personalized timestamped rating"
       it_should_behave_like "allowed_ratings have not been changed"
     
     end
@@ -414,7 +448,7 @@ if HAS_SQLITE3 || HAS_MYSQL || HAS_POSTGRES
     
       it_should_behave_like "every enabled personalized rating"
       it_should_behave_like "every togglable rating"
-      it_should_behave_like "every non-timestamped rating"
+      it_should_behave_like "every personalized non-timestamped rating"
       it_should_behave_like "allowed_ratings have not been changed"
     
     end
@@ -454,7 +488,7 @@ if HAS_SQLITE3 || HAS_MYSQL || HAS_POSTGRES
     
       it_should_behave_like "every enabled personalized rating"
       it_should_behave_like "every togglable rating"
-      it_should_behave_like "every timestamped rating"
+      it_should_behave_like "every personalized timestamped rating"
       it_should_behave_like "every aliased rating"
       it_should_behave_like "allowed_ratings have not been changed"
     
@@ -497,7 +531,7 @@ if HAS_SQLITE3 || HAS_MYSQL || HAS_POSTGRES
     
       it_should_behave_like "every enabled personalized rating"
       it_should_behave_like "every non-togglable rating"
-      it_should_behave_like "every timestamped rating"
+      it_should_behave_like "every personalized timestamped rating"
       it_should_behave_like "allowed_ratings have not been changed"
     
     end
@@ -539,7 +573,7 @@ if HAS_SQLITE3 || HAS_MYSQL || HAS_POSTGRES
     
       it_should_behave_like "every enabled personalized rating"
       it_should_behave_like "every togglable rating"
-      it_should_behave_like "every timestamped rating"
+      it_should_behave_like "every personalized timestamped rating"
       it_should_behave_like "allowed_ratings have not been changed"
       
     end
@@ -581,7 +615,7 @@ if HAS_SQLITE3 || HAS_MYSQL || HAS_POSTGRES
     
       it_should_behave_like "every enabled personalized rating"
       it_should_behave_like "every togglable rating"
-      it_should_behave_like "every timestamped rating"
+      it_should_behave_like "every personalized timestamped rating"
       it_should_behave_like "every aliased rating"
       it_should_behave_like "allowed_ratings have not been changed"
       
@@ -616,7 +650,7 @@ if HAS_SQLITE3 || HAS_MYSQL || HAS_POSTGRES
       
       it_should_behave_like "every enabled anonymized rating"
       it_should_behave_like "every togglable rating"
-      it_should_behave_like "every timestamped rating"
+      it_should_behave_like "every anonymized timestamped rating"
       it_should_behave_like "allowed_ratings have not been changed"
       
     end
@@ -650,7 +684,7 @@ if HAS_SQLITE3 || HAS_MYSQL || HAS_POSTGRES
       
       it_should_behave_like "every enabled anonymized rating"
       it_should_behave_like "every togglable rating"
-      it_should_behave_like "every timestamped rating"
+      it_should_behave_like "every anonymized timestamped rating"
       it_should_behave_like "every aliased rating"
       it_should_behave_like "allowed_ratings have not been changed"
       

@@ -123,14 +123,15 @@ module DataMapper
               end
             
             property :rating, rating_type, :nullable => false
+          
+            if options[:timestamps]
+              include DataMapper::Timestamp
+              property :created_at, DateTime
+              property :updated_at, DateTime
+            end
             
           end
-        end
-        
-        if options[:timestamps]
-          include DataMapper::Timestamp
-          property :created_at, DateTime
-          property :updated_at, DateTime
+          
         end
         
       end
