@@ -10,7 +10,16 @@ AUTHOR = "Martin Gamsjaeger"
 EMAIL  = "gamsnjaga [a] gmail [d] com"
 GEM_NAME = "dm-is-rateable"
 GEM_VERSION = DataMapper::Is::Rateable::VERSION
-GEM_DEPENDENCIES = [["dm-core", ">=0.9.4"], ["dm-is-remixable", ">=0.9.4"]]
+
+GEM_DEPENDENCIES = [
+  ["dm-core",         ">=0.9.4"], 
+  ["dm-is-remixable", ">=0.9.4"], 
+  ["dm-validations",  ">=0.9.4"],
+  ["dm-aggregates",   ">=0.9.4"],
+  ["dm-timestamps",   ">=0.9.4"],
+  ["dm-types",        ">=0.9.4"],
+]
+
 GEM_CLEAN = ["log", "pkg"]
 GEM_EXTRAS = { :has_rdoc => false, :extra_rdoc_files => %w[ README.txt LICENSE TODO ] }
 

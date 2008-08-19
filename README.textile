@@ -4,6 +4,15 @@ A DataMapper plugin that adds the ability to rate any model (the 5 clickable sta
 
 <pre>
 <code>
+# GEM_DEPENDENCIES = [
+#  ["dm-core",         ">=0.9.4"], 
+#  ["dm-is-remixable", ">=0.9.4"], 
+#  ["dm-validations",  ">=0.9.4"],
+#  ["dm-aggregates",   ">=0.9.4"],
+#  ["dm-timestamps",   ">=0.9.4"],
+#  ["dm-types",        ">=0.9.4"],
+# ]
+  
 class User
   include DataMapper::Resource
   property :id, Serial
@@ -29,13 +38,13 @@ class Trip
   # allowing the following options:
   #
   # options = {
-  #  :rating_module => nil, # specify a different remixable model TODO: implement and spec
-  #  :anonymous => false, # tracks ratings per user by default, set to true to for anonymous votes
+  #  :rating_module => nil, # specify a different remixable model TODO: finish implementation and spec
+  #  :anonymous => false,   # tracks ratings per user by default, set to true for anonymous ratings
   #  :rater => { :fk => :user_id, :fk_type => Integer, :fk_nullable => false, :unique => true },
   #  :allow_deactivation => true, # allow ratings to be disabled and enabled again
-  #  :allowed_ratings => (0..5), # ranke of possible values (TODO: spec Enum support)
-  #  :timestamps => true, # track timestamps using dm-timestamps
-  #  :as => nil # if symbol/string then add an alias by that name on the :ratings association
+  #  :allowed_ratings => (0..5),  # range of possible values (TODO: spec Enum support)
+  #  :timestamps => true,         # track timestamps using dm-timestamps
+  #  :as => nil                   # if symbol/string then add an alias by that name on has n, :ratings
   # }
   
   is :rateable #, options
