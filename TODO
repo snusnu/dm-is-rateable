@@ -1,0 +1,6 @@
+TODO
+====
+
+* Add specs for allowed_rating_values of type Enum
+* Add specs for the case when the remixing model is namespaced
+* Implement possibility to use arbitrary modules as rateable remixables

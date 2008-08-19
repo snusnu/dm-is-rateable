@@ -1,0 +1,45 @@
+h2. dm-is-example
+
+A DataMapper plugin that adds the ability to rate any model (the 5 clickable stars I see everywhere).
+
+<pre>
+<code>
+class User
+  include DataMapper::Resource
+  property :id, Serial
+end
+
+class Trip
+
+  include DataMapper::Resource
+  property :id, Serial
+
+  # will define and thus auto_migrate! by using dm-is-remixable:
+  #
+  # class TripRating
+  #   include DataMapper::Resource
+  #   property :id, Serial
+  #   property :trip_id, Integer, :nullable => false
+  #   property :user_id, Integer, :nullable => false
+  #   property :rating,  Integer, :nullable => false
+  #
+  #   belongs_to :user
+  # end
+  #
+  # allowing the following options:
+  #
+  # options = {
+  #  :rating_module => nil, # specify a different remixable model TODO: implement and spec
+  #  :anonymous => false, # tracks ratings per user by default, set to true to for anonymous votes
+  #  :rater => { :fk => :user_id, :fk_type => Integer, :fk_nullable => false, :unique => true },
+  #  :allow_deactivation => true, # allow ratings to be disabled and enabled again
+  #  :allowed_ratings => (0..5), # ranke of possible values (TODO: spec Enum support)
+  #  :timestamps => true, # track timestamps using dm-timestamps
+  #  :as => nil # if symbol/string then add an alias by that name on the :ratings association
+  # }
+  
+  is :rateable #, options
+  
+end
+</code>
+</pre>
