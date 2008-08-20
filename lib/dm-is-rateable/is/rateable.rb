@@ -194,12 +194,10 @@ module DataMapper
             if self.class.allowed_ratings.include?(rating)
               self.ratings.create(:rating => rating)
             else
-              msg = "Rating (#{rating}) must be in #{allowed_ratings.inspect}"
-              raise ImpossibleRatingValue, msg
+              raise ImpossibleRatingValue, "Rating (#{rating}) must be in #{allowed_ratings.inspect}"
             end
           else
-            msg = "Ratings are not enabled for #{self.name}"
-            raise RatingDisabled, "Ratings are not enabled for #{self.name}"
+            raise RatingDisabled, "Ratings are not enabled for #{self.class.name}"
           end
         end
         

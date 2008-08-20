@@ -268,11 +268,10 @@ if HAS_SQLITE3 || HAS_MYSQL || HAS_POSTGRES
       it_should_behave_like "every anonymized rating"
       
       it "should not allow any ratings" do
-        Trip.allowed_ratings = (0..4)
         lambda { @t1.rate(-1) }.should raise_error(DataMapper::Is::Rateable::RatingDisabled)
         lambda { @t1.rate( 0) }.should raise_error(DataMapper::Is::Rateable::RatingDisabled)
-        lambda { @t1.rate( 4) }.should raise_error(DataMapper::Is::Rateable::RatingDisabled)
         lambda { @t1.rate( 5) }.should raise_error(DataMapper::Is::Rateable::RatingDisabled)
+        lambda { @t1.rate( 6) }.should raise_error(DataMapper::Is::Rateable::RatingDisabled)
       end
     
     end
@@ -349,11 +348,10 @@ if HAS_SQLITE3 || HAS_MYSQL || HAS_POSTGRES
       it_should_behave_like "every personalized rating"
     
       it "should only accept allowed rating values" do
-        Trip.allowed_ratings = (0..4)
-        lambda { @t1.rate(-1, @u1) }.should raise_error(DataMapper::Is::Rateable::TogglableRatingDisabled)
-        lambda { @t1.rate( 0, @u1) }.should_not raise_error
-        lambda { @t1.rate( 4, @u1) }.should_not raise_error
-        lambda { @t1.rate( 5, @u1) }.should raise_error(DataMapper::Is::Rateable::TogglableRatingDisabled)
+        lambda { @t1.rate(-1, @u1) }.should raise_error(DataMapper::Is::Rateable::RatingDisabled)
+        lambda { @t1.rate( 0, @u1) }.should raise_error(DataMapper::Is::Rateable::RatingDisabled)
+        lambda { @t1.rate( 5, @u1) }.should raise_error(DataMapper::Is::Rateable::RatingDisabled)
+        lambda { @t1.rate( 6, @u1) }.should raise_error(DataMapper::Is::Rateable::RatingDisabled)
       end
     
     end
@@ -409,6 +407,79 @@ if HAS_SQLITE3 || HAS_MYSQL || HAS_POSTGRES
       it_should_behave_like "every enabled personalized rating"
       it_should_behave_like "every togglable rating"
       it_should_behave_like "every personalized timestamped rating"
+      it_should_behave_like "allowed_ratings have not been changed"
+    
+    end
+    
+    # --------------------------------------------------------------------------------------------------
+    # --------------------------------------------------------------------------------------------------
+    
+    describe "Trip.is(:rateable) with rating disabled" do
+    
+      before do
+      
+        unload_rating_infrastructure "Trip", "User"
+        
+        class User
+          include DataMapper::Resource
+          property :id, Serial
+        end
+      
+        class Trip
+          include DataMapper::Resource
+          property :id, Serial
+        
+          # will define TripRating
+          is :rateable
+        end
+        
+        User.auto_migrate!
+        Trip.auto_migrate!
+        TripRating.auto_migrate!
+
+        @u1 = User.create(:id => 1)
+        @t1 = Trip.create(:id => 1)
+        
+        @t1.disable_rating
+      
+      end
+    
+      it_should_behave_like "every disabled personalized rating"
+      it_should_behave_like "every togglable rating"
+      it_should_behave_like "every personalized timestamped rating"
+      it_should_behave_like "allowed_ratings have not been changed"
+    
+    end
+    
+    # --------------------------------------------------------------------------------------------------
+    # --------------------------------------------------------------------------------------------------
+    
+    describe "Trip.is(:rateable, :anonymous => true) with rating disabled" do
+    
+      before do
+      
+        unload_rating_infrastructure "Trip"""
+      
+        class Trip
+          include DataMapper::Resource
+          property :id, Serial
+        
+          # will define TripRating
+          is :rateable, :anonymous => true
+        end
+        
+        Trip.auto_migrate!
+        TripRating.auto_migrate!
+
+        @t1 = Trip.create(:id => 1)
+        
+        @t1.disable_rating
+      
+      end
+    
+      it_should_behave_like "every disabled anonymized rating"
+      it_should_behave_like "every togglable rating"
+      it_should_behave_like "every anonymized timestamped rating"
       it_should_behave_like "allowed_ratings have not been changed"
     
     end
