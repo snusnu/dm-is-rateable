@@ -12,12 +12,12 @@ GEM_NAME = "dm-is-rateable"
 GEM_VERSION = DataMapper::Is::Rateable::VERSION
 
 GEM_DEPENDENCIES = [
-  ["dm-core",         ">=0.9.4"], 
-  ["dm-is-remixable", ">=0.9.4"], 
-  ["dm-validations",  ">=0.9.4"],
-  ["dm-aggregates",   ">=0.9.4"],
-  ["dm-timestamps",   ">=0.9.4"],
-  ["dm-types",        ">=0.9.4"],
+  ["dm-core",         ">=0.9.5"], 
+  ["dm-validations",  ">=0.9.5"],
+  ["dm-aggregates",   ">=0.9.5"],
+  ["dm-timestamps",   ">=0.9.5"],
+  ["dm-types",        ">=0.9.5"],
+  ["dm-is-remixable", ">=0.9.5"], 
 ]
 
 GEM_CLEAN = ["log", "pkg"]

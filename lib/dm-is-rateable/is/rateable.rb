@@ -3,12 +3,13 @@ module DataMapper
     module Rateable
       
       class DmIsRateableException < Exception; end
-      class DmIsRateableRuntimeError < RuntimeError; end
       
+      class RatingDisabled < DmIsRateableException; end
+      class AnonymousRatingDisabled < DmIsRateableException; end
+      class TogglableRatingDisabled < DmIsRateableException; end
+      class TogglableAnonymousRatingDisabled < DmIsRateableException; end
       class ImpossibleRatingType < DmIsRateableException; end
-      class RatingDisabled < DmIsRateableRuntimeError; end
-      class TogglableRatingDisabled < DmIsRateableRuntimeError; end
-      class ImpossibleRatingValue < DmIsRateableRuntimeError; end
+      class ImpossibleRatingValue < DmIsRateableException; end
       
       module Rating
 
@@ -20,9 +21,7 @@ module DataMapper
 
         is :remixable
 
-        # properties
-
-        property :id, Integer, :serial => true
+        property :id, Serial
   
         module ClassMethods
 
@@ -38,105 +37,88 @@ module DataMapper
 
       def is_rateable(options = {})
         
-        extend  DataMapper::Is::Rateable::ClassMethods
-        include DataMapper::Is::Rateable::CommonInstanceMethods
+        extend  ClassMethods
+        include InstanceMethods
         
-        # merge default options
         options = {
-          :rating_module => nil, # only enhance if this is nil
-          :anonymous => false,
-          :rater => { :fk => :user_id, :fk_type => Integer, :fk_nullable => false, :unique => true },
-          :allow_deactivation => true,
+          :rater => { :name => :user_id, :type => Integer },
           :allowed_ratings => (0..5),
           :timestamps => true,
           :as => nil
         }.merge(options)
         
-        @rating_module = options[:rating_module] || DataMapper::Is::Rateable::Rating
-        class_inheritable_reader :rating_module
-                
-        @allow_togglable_rating = options[:allow_deactivation]
-        class_inheritable_accessor :allow_togglable_rating
+        @allowed_ratings = options[:allowed_ratings]        
+        class_inheritable_accessor :allowed_ratings
         
+        remix n, Rating, :as => options[:as]
         
-        # use dm-is-remixable for storage and api
-        remix n, self.rating_module, :as => options[:as]
-        
-        @remixed_rating = remixables[Extlib::Inflection.demodulize(rating_module.name).snake_case.to_sym]
+        @remixed_rating = remixables[:rating]
         class_inheritable_reader :remixed_rating
-        
+
         self.class_eval(<<-EOS, __FILE__, __LINE__ + 1)
-          alias :ratings #{self.remixed_rating[:reader]}
+          alias :ratings #{@remixed_rating[:reader]}
         EOS
         
-        class_inheritable_accessor :allowed_ratings
-        self.allowed_ratings = options[:allowed_ratings]        
+        # prepare rating enhancements
         
-        # rating enabled property 
-        property :rating_enabled, DataMapper::Types::Boolean, :nullable => false, :default => true
-        
-        if options[:anonymous]
-          include DataMapper::Is::Rateable::AnonymousRatingInstanceMethods
-        else
-          include DataMapper::Is::Rateable::PersonalizedRatingInstanceMethods
+        def rater_fk(name)
+          name ? Extlib::Inflection.foreign_key(name.to_s.singular).to_sym : :user_id
         end
         
-        unless options[:rating_module]
-          
-          # remember this because enhance will class_eval in remixable model scope 
-          parent_key = rateable_fk
+        r_opts = options[:rater]
+        r_name = r_opts.is_a?(Hash) ? (r_opts.delete(:name) || :user_id) : rater_fk(r_opts)
+        r_type = r_opts.is_a?(Hash) ? (r_opts.delete(:type) || Integer)  : Integer
+        r_property_opts = r_opts.is_a?(Hash) ? r_opts : { :nullable => false }
+        r_association = r_name.to_s.gsub(/_id/, '').to_sym
+        
+        @rater_fk = r_name
+        class_inheritable_reader :rater_fk
+        
+        # determine property type based on supplied values
+        rating_type = case options[:allowed_ratings]
+          when Range then 
+            options[:allowed_ratings].first.is_a?(Integer) ? Integer : String
+          when Enum  then 
+            require 'dm-types'
+            DataMapper::Types::Enum
+          else
+            msg = "#{options[:allowed_ratings].class} is no supported rating type" 
+            raise ImpossibleRatingType, msg
+        end
+        
+        # close on this because enhance will class_eval in remixable model scope 
+        parent_key = self.rateable_fk
 
-          enhance :rating do            
-            
-            unless options[:anonymous]
+        enhance :rating do
           
-              rater = options[:rater]
-              rater_fk          = rater.is_a?(Hash) ? rater[:fk]          : rater.to_s.snake_case.to_sym
-              rater_fk_type     = rater.is_a?(Hash) ? rater[:fk_type]     : Integer
-              rater_fk_nullable = rater.is_a?(Hash) ? rater[:fk_nullable] : false
-              rater_fk_unique   = rater.is_a?(Hash) ? rater[:unique]      : true            
-              
-              # properties
-              property rater_fk, rater_fk_type, :nullable => rater_fk_nullable
-              belongs_to rater_fk.to_s.gsub(/_id/, '').to_sym
-              
-              # validations
-              # don't use auto validation triggers because we want to scope the validation
-              if rater_fk_unique
-                require 'dm-validations' unless Object.full_const_defined?("DataMapper::Validate")
-                parent_assocation = parent_key.to_s.gsub(/_id/, '').to_sym
-                validates_is_unique rater_fk, :when => :testing_association, :scope => [parent_assocation]
-                validates_is_unique rater_fk, :when => :testing_property, :scope => [parent_key]
-              end
-                         
-            end
-            
-            # determine property type based on supplied values
-            rating_type = case options[:allowed_ratings]
-              when Range then Integer
-              when Enum  then
-                require 'dm-types' unless Object.full_const_defined?("DataMapper::Types")
-                DataMapper::Types::Enum
-              else
-                msg = "#{options[:allowed_ratings].class} is no supported RatingType" 
-                raise ImpossibleRatingType, msg
-              end
-            
-            property :rating, rating_type, :nullable => false
+          property r_name, r_type, r_property_opts # rater
           
-            if options[:timestamps]
-              include DataMapper::Timestamp
-              property :created_at, DateTime
-              property :updated_at, DateTime
-            end
-            
+          property :rating, rating_type, :nullable => false
+          
+          if options[:timestamps]
+            property :created_at, DateTime
+            property :updated_at, DateTime
           end
           
+          belongs_to r_association
+        
+          parent_assocation = parent_key.to_s.gsub(/_id/, '').to_sym
+          validates_is_unique r_name, :when => :testing_association, :scope => [parent_assocation]
+          validates_is_unique r_name, :when => :testing_property, :scope => [parent_key]
+        
         end
         
       end
 
       module ClassMethods
+        
+        def rating_togglable?
+          self.properties.has_property? :rating_enabled
+        end
+                
+        def anonymous_rating_togglable?
+          self.properties.has_property? :anonymous_rating_enabled
+        end
         
         def total_rating
           remixables[:rating][:model].total_rating
@@ -149,10 +131,82 @@ module DataMapper
 
       end
   
-      module CommonInstanceMethods
+      module InstanceMethods
+        
+        def rating_togglable?
+          self.class.rating_togglable?
+        end
+                
+        def anonymous_rating_togglable?
+          self.class.anonymous_rating_togglable?
+        end
+        
         
         def rating_enabled?
-          self.respond_to?(:rating_enabled) && self.rating_enabled
+          self.rating_togglable? ? attribute_get(:rating_enabled) : true
+        end
+        
+        def anonymous_rating_enabled?
+          self.anonymous_rating_togglable? ? attribute_get(:anonymous_rating_enabled) : false
+        end
+        
+        # convenience method
+        def rating_disabled?
+          !self.rating_enabled?
+        end
+        
+        # convenience method
+        def anonymous_rating_disabled?
+          !self.anonymous_rating_enabled?
+        end
+        
+        
+        def disable_rating!
+          if self.rating_togglable?
+            if self.rating_enabled?
+              self.rating_enabled = false
+              self.save
+            end
+          else
+            raise TogglableRatingDisabled, "Ratings cannot be toggled for #{self}"
+          end
+        end
+        
+        def enable_rating!
+          if self.rating_togglable?
+            unless self.rating_enabled?
+              self.rating_enabled = true
+              self.save
+            end
+          else
+            raise TogglableRatingDisabled, "Ratings cannot be toggled for #{self}"
+          end
+        end
+        
+        
+        def disable_anonymous_rating!
+          if self.anonymous_rating_togglable?
+            if self.anonymous_rating_enabled?
+              self.update_attributes(:anonymous_rating_enabled => false)
+            end
+          else
+            raise TogglableAnonymousRatingDisabled, "Anonymous Ratings cannot be toggled for #{self}"
+          end
+        end
+        
+        def enable_anonymous_rating!
+          if self.anonymous_rating_togglable?
+            unless self.anonymous_rating_enabled?
+              self.update_attributes(:anonymous_rating_enabled => true)
+            end
+          else
+            raise TogglableAnonymousRatingDisabled, "Anonymous Ratings cannot be toggled for #{self}"
+          end
+        end
+        
+        
+        def rater
+          self.class.rater_fk.to_s.gsub(/_id/, '').to_sym
         end
         
         def rating
@@ -163,79 +217,37 @@ module DataMapper
           rating_count > 0 ? rating_sum / rating_count : 0
         end
         
-        def disable_rating
-          if self.class.allow_togglable_rating
-            if self.rating_enabled?
-              self.rating_enabled = false
-              self.save
-            end
-          else
-            raise TogglableRatingDisabled, "Ratings cannot be toggled for #{self}"
-          end
-        end
-        
-        def enable_rating
-          if self.class.allow_togglable_rating
-            unless self.rating_enabled?
-              self.rating_enabled = true
-              self.save
-            end
-          else
-            raise TogglableRatingDisabled, "Ratings cannot be toggled for #{self}"
-          end
-        end
-        
-      end
-      
-      module AnonymousRatingInstanceMethods
-        
-        def rate(rating)
+        def rate(rating, user = nil)
           if self.rating_enabled?
             if self.class.allowed_ratings.include?(rating)
-              self.ratings.create(:rating => rating)
-            else
-              raise ImpossibleRatingValue, "Rating (#{rating}) must be in #{allowed_ratings.inspect}"
-            end
-          else
-            raise RatingDisabled, "Ratings are not enabled for #{self.class.name}"
-          end
-        end
-        
-        def rating_values(conditions = {})
-          self.ratings(conditions).map { |r| r.rating }
-        end
-        
-      end
-      
-      module PersonalizedRatingInstanceMethods
-        
-        def rate(rating, user)
-          if self.rating_enabled?
-            if self.class.allowed_ratings.include?(rating)
-              if r = self.user_rating(user)
-                if rating != r.rating
-                  r.rating = rating
-                  r.save
+              if user
+                if r = self.user_rating(user)
+                  if r.rating != rating
+                    r.update_attributes(:rating => rating)
+                  end
+                else
+                  self.ratings.create(self.rater => user, :rating => rating)
                 end
               else
-                self.ratings.create(:user => user, :rating => rating)
+                if self.anonymous_rating_enabled?
+                  self.ratings.create(:rating => rating)
+                else
+                  msg = "Anonymous ratings are not enabled for #{self}"
+                  raise AnonymousRatingDisabled, msg                  
+                end
               end
             else
               msg = "Rating (#{rating}) must be in #{allowed_ratings.inspect}"
               raise ImpossibleRatingValue, msg
             end
           else
-            msg = "Ratings are not enabled for #{self.class.name}"
+            msg = "Ratings are not enabled for #{self}"
             raise RatingDisabled, msg
           end
         end
 
-        def user_rating(user)
-          self.ratings(:user_id => user.id).first
-        end
-                
-        def user_rating_value(user)
-          (r = user_rating(user)) ? r.rating : nil
+        def user_rating(user, conditions = {})
+          self.ratings(conditions.merge(self.class.rater_fk => user.id)).first
         end
         
       end
