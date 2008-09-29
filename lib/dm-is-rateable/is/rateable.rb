@@ -54,10 +54,12 @@ module DataMapper
         
         @remixed_rating = remixables[:rating]
         class_inheritable_reader :remixed_rating
-
-        self.class_eval(<<-EOS, __FILE__, __LINE__ + 1)
-          alias :ratings #{@remixed_rating[:reader]}
-        EOS
+        
+        if @remixed_rating[:reader] != :ratings
+          self.class_eval(<<-EOS, __FILE__, __LINE__ + 1)
+            alias :ratings :#{@remixed_rating[:reader]}
+          EOS
+        end
         
         # prepare rating enhancements
         
