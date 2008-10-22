@@ -44,20 +44,27 @@ module DataMapper
           :rater => { :name => :user_id, :type => Integer },
           :allowed_ratings => (0..5),
           :timestamps => true,
-          :as => nil
+          :as => nil,
+          :class_name => "#{self}Rating"
         }.merge(options)
         
         @allowed_ratings = options[:allowed_ratings]        
         class_inheritable_accessor :allowed_ratings
         
-        remix n, Rating, :as => options[:as]
+        @rateable_class_name = options[:class_name]        
+        class_inheritable_accessor :rateable_class_name        
+        
+        @rateable_key = @rateable_class_name.snake_case.to_sym     
+        class_inheritable_accessor :rateable_key
+        
+        remix n, Rating, :as => options[:as], :class_name => options[:class_name]
         
         @remixed_rating = remixables[:rating]
         class_inheritable_reader :remixed_rating
         
         if @remixed_rating[:reader] != :ratings
           self.class_eval(<<-EOS, __FILE__, __LINE__ + 1)
-            alias :ratings :#{@remixed_rating[:reader]}
+            alias :ratings :#{@remixed_rating[rateable_key][:reader]}
           EOS
         end
         
@@ -91,7 +98,7 @@ module DataMapper
         # close on this because enhance will class_eval in remixable model scope 
         parent_key = self.rateable_fk
 
-        enhance :rating do
+        enhance :rating, @rateable_class_name do
           
           property r_name, r_type, r_property_opts # rater
           
@@ -123,7 +130,7 @@ module DataMapper
         end
         
         def total_rating
-          remixables[:rating][:model].total_rating
+          remixables[:rating][rateable_key][:model].total_rating
         end
         
         def rateable_fk
@@ -213,7 +220,7 @@ module DataMapper
         
         def rating
           scope = { self.class.rateable_fk => self.id }
-          model_class =  self.class.remixables[:rating][:model]
+          model_class =  self.class.remixables[:rating][rateable_key][:model]
           rating_sum = model_class.sum(:rating, scope).to_f
           rating_count = model_class.count(scope).to_f
           rating_count > 0 ? rating_sum / rating_count : 0
