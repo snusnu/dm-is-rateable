@@ -27,6 +27,16 @@ if HAS_SQLITE3 || HAS_MYSQL || HAS_POSTGRES
         Object.const_defined?("TripRating").should be_true
         lambda { TripRating.auto_migrate! }.should_not raise_error
       end
+      
+      it "should define a 'commentable_class_name' class_level reader on the remixing model" do
+        Trip.respond_to?(:rateable_class_name).should be_true
+        Trip.rateable_class_name.should == "TripRating"
+      end
+                  
+      it "should define a 'commentable_key' class_level reader on the remixing model" do
+        Trip.respond_to?(:rateable_key).should be_true
+        Trip.rateable_key.should == :trip_rating
+      end
 
       it "should define a 'rating_togglable?' class method on the remixing model" do
         Trip.respond_to?(:rating_togglable?).should be_true
