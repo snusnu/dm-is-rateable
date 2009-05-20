@@ -45,19 +45,19 @@ module DataMapper
           :allowed_ratings => (0..5),
           :timestamps => true,
           :as => nil,
-          :class_name => "#{self}Rating"
+          :model => "#{self}Rating"
         }.merge(options)
         
         @allowed_ratings = options[:allowed_ratings]        
         class_inheritable_accessor :allowed_ratings
         
-        @rateable_class_name = options[:class_name]        
+        @rateable_class_name = options[:model]        
         class_inheritable_accessor :rateable_class_name        
         
         @rateable_key = @rateable_class_name.snake_case.to_sym     
         class_inheritable_accessor :rateable_key
         
-        remix n, Rating, :as => options[:as], :class_name => options[:class_name]
+        remix n, Rating, :as => options[:as], :model => options[:model]
         
         @remixed_rating = remixables[:rating]
         class_inheritable_reader :remixed_rating
@@ -122,11 +122,11 @@ module DataMapper
       module ClassMethods
         
         def rating_togglable?
-          self.properties.has_property? :rating_enabled
+          self.properties.named? :rating_enabled
         end
                 
         def anonymous_rating_togglable?
-          self.properties.has_property? :anonymous_rating_enabled
+          self.properties.named? :anonymous_rating_enabled
         end
         
         def total_rating
@@ -196,7 +196,7 @@ module DataMapper
         def disable_anonymous_rating!
           if self.anonymous_rating_togglable?
             if self.anonymous_rating_enabled?
-              self.update_attributes(:anonymous_rating_enabled => false)
+              self.update(:anonymous_rating_enabled => false)
             end
           else
             raise TogglableAnonymousRatingDisabled, "Anonymous Ratings cannot be toggled for #{self}"
@@ -206,7 +206,7 @@ module DataMapper
         def enable_anonymous_rating!
           if self.anonymous_rating_togglable?
             unless self.anonymous_rating_enabled?
-              self.update_attributes(:anonymous_rating_enabled => true)
+              self.update(:anonymous_rating_enabled => true)
             end
           else
             raise TogglableAnonymousRatingDisabled, "Anonymous Ratings cannot be toggled for #{self}"
@@ -232,7 +232,7 @@ module DataMapper
               if user
                 if r = self.user_rating(user)
                   if r.rating != rating
-                    r.update_attributes(:rating => rating)
+                    r.update(:rating => rating)
                   end
                 else
                   self.ratings.create(self.rater => user, :rating => rating)
