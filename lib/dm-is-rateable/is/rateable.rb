@@ -74,13 +74,13 @@ module DataMapper
           name ? Extlib::Inflection.foreign_key(name.to_s.singular).to_sym : :user_id
         end
         
-        r_opts = options[:rater]
-        r_name = r_opts.is_a?(Hash) ? (r_opts.delete(:name) || :user_id) : rater_fk(r_opts)
-        r_type = r_opts.is_a?(Hash) ? (r_opts.delete(:type) || Integer)  : Integer
-        r_property_opts = r_opts.is_a?(Hash) ? r_opts : { :nullable => false }
-        r_association = r_name.to_s.gsub(/_id/, '').to_sym
+        rater_opts = options[:rater]
+        rater_name = rater_opts.is_a?(Hash) ? (rater_opts.delete(:name) || :user_id) : rater_fk(rater_opts)
+        rater_type = rater_opts.is_a?(Hash) ? (rater_opts.delete(:type) || Integer)  : Integer
+        rater_property_opts = rater_opts.is_a?(Hash) ? rater_opts : { :nullable => false }
+        rater_association = rater_name.to_s.gsub(/_id/, '').to_sym
         
-        @rater_fk = r_name
+        @rater_fk = rater_name
         class_inheritable_reader :rater_fk
         
         # determine property type based on supplied values
@@ -100,7 +100,7 @@ module DataMapper
 
         enhance :rating, @rateable_model do
           
-          property r_name, r_type, r_property_opts # rater
+          property rater_name, rater_type, rater_property_opts # rater
           
           property :rating, rating_type, :nullable => false
           
@@ -109,11 +109,11 @@ module DataMapper
             property :updated_at, DateTime
           end
           
-          belongs_to r_association
+          belongs_to rater_association
         
           parent_assocation = parent_key.to_s.gsub(/_id/, '').to_sym
-          validates_is_unique r_name, :when => :testing_association, :scope => [parent_assocation]
-          validates_is_unique r_name, :when => :testing_property, :scope => [parent_key]
+          validates_is_unique rater_name, :when => :testing_association, :scope => [parent_assocation]
+          validates_is_unique rater_name, :when => :testing_property, :scope => [parent_key]
         
         end
         
