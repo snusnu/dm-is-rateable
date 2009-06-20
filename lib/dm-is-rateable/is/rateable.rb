@@ -51,10 +51,10 @@ module DataMapper
         @allowed_ratings = options[:allowed_ratings]        
         class_inheritable_accessor :allowed_ratings
         
-        @rateable_class_name = options[:model]        
-        class_inheritable_accessor :rateable_class_name        
+        @rateable_model = options[:model]
+        class_inheritable_accessor :rateable_model
         
-        @rateable_key = @rateable_class_name.snake_case.to_sym     
+        @rateable_key = @rateable_model.snake_case.to_sym
         class_inheritable_accessor :rateable_key
         
         remix n, Rating, :as => options[:as], :model => options[:model]
@@ -98,7 +98,7 @@ module DataMapper
         # close on this because enhance will class_eval in remixable model scope 
         parent_key = self.rateable_fk
 
-        enhance :rating, @rateable_class_name do
+        enhance :rating, @rateable_model do
           
           property r_name, r_type, r_property_opts # rater
           
