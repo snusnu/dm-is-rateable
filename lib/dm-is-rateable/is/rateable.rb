@@ -41,7 +41,6 @@ module DataMapper
         include InstanceMethods
         
         options = {
-          :rater => { :name => :user_id, :type => Integer },
           :allowed_ratings => (0..5),
           :timestamps => true,
           :as => nil,
@@ -67,22 +66,7 @@ module DataMapper
             alias :ratings :#{@remixed_rating[rateable_key][:reader]}
           EOS
         end
-        
-        # prepare rating enhancements
-        
-        def rater_fk(name)
-          name ? Extlib::Inflection.foreign_key(name.to_s.singular).to_sym : :user_id
-        end
-        
-        rater_opts = options[:rater]
-        rater_name = rater_opts.is_a?(Hash) ? (rater_opts.delete(:name) || :user_id) : rater_fk(rater_opts)
-        rater_type = rater_opts.is_a?(Hash) ? (rater_opts.delete(:type) || Integer)  : Integer
-        rater_property_opts = rater_opts.is_a?(Hash) ? rater_opts : { :nullable => false }
-        rater_association = rater_name.to_s.gsub(/_id/, '').to_sym
-        
-        @rater_fk = rater_name
-        class_inheritable_reader :rater_fk
-        
+
         # determine property type based on supplied values
         rating_type = case options[:allowed_ratings]
           when Range then 
@@ -94,29 +78,55 @@ module DataMapper
             msg = "#{options[:allowed_ratings].class} is no supported rating type" 
             raise ImpossibleRatingType, msg
         end
-        
+
+
+        # prepare rating enhancements
+
+        def rater_fk(name)
+          name ? Extlib::Inflection.foreign_key(name.to_s.singular).to_sym : :user_id
+        end
+
+        if options[:rater]
+
+          rater_opts = options[:rater]
+          rater_name = rater_opts.is_a?(Hash) ? (rater_opts.delete(:name) || :user_id) : rater_fk(rater_opts)
+          rater_type = rater_opts.is_a?(Hash) ? (rater_opts.delete(:type) || Integer)  : Integer
+          rater_property_opts = rater_opts.is_a?(Hash) ? rater_opts : { :nullable => false }
+          rater_association = rater_name.to_s.gsub(/_id/, '').to_sym
+
+          @rater_fk = rater_name
+
+        else
+          @rater_fk = nil # no rater association established
+        end
+
+        class_inheritable_reader :rater_fk
+
         # close on this because enhance will class_eval in remixable model scope 
         parent_key = self.rateable_fk
 
         enhance :rating, @rateable_model do
-          
-          property rater_name, rater_type, rater_property_opts # rater
-          
+
           property :rating, rating_type, :nullable => false
-          
+
+          if options[:rater]
+
+            property rater_name, rater_type, rater_property_opts # rater
+            belongs_to rater_association
+
+            parent_assocation = parent_key.to_s.gsub(/_id/, '').to_sym
+            validates_is_unique rater_name, :when => :testing_association, :scope => [parent_assocation]
+            validates_is_unique rater_name, :when => :testing_property, :scope => [parent_key]
+
+          end
+
           if options[:timestamps]
             property :created_at, DateTime
             property :updated_at, DateTime
           end
-          
-          belongs_to rater_association
-        
-          parent_assocation = parent_key.to_s.gsub(/_id/, '').to_sym
-          validates_is_unique rater_name, :when => :testing_association, :scope => [parent_assocation]
-          validates_is_unique rater_name, :when => :testing_property, :scope => [parent_key]
-        
+
         end
-        
+
       end
 
       module ClassMethods

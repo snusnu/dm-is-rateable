@@ -417,7 +417,7 @@ if HAS_SQLITE3 || HAS_MYSQL || HAS_POSTGRES
     # --------------------------------------------------------------------------------------------------
     
     
-    describe "Trip.is(:rateable) without additional properties" do
+    describe "Trip.is(:rateable, :rater => :user)" do
     
       before do
       
@@ -434,7 +434,7 @@ if HAS_SQLITE3 || HAS_MYSQL || HAS_POSTGRES
           
           property :id, Serial
         
-          is :rateable
+          is :rateable, :rater => :user
           
         end
         
@@ -465,7 +465,7 @@ if HAS_SQLITE3 || HAS_MYSQL || HAS_POSTGRES
     # --------------------------------------------------------------------------------------------------
     # --------------------------------------------------------------------------------------------------
     
-    describe "Trip.is(:rateable) with togglable anonymity/rateability" do
+    describe "Trip.is(:rateable, :rater => :user) with togglable anonymity/rateability" do
     
       before do
       
@@ -484,7 +484,7 @@ if HAS_SQLITE3 || HAS_MYSQL || HAS_POSTGRES
           property :anonymous_rating_enabled, Boolean, :nullable => false, :default => true
         
           # will define TripRating
-          is :rateable
+          is :rateable, :rater => :user
         end
         
         User.auto_migrate!
@@ -514,7 +514,7 @@ if HAS_SQLITE3 || HAS_MYSQL || HAS_POSTGRES
     # --------------------------------------------------------------------------------------------------
     # --------------------------------------------------------------------------------------------------
         
-    describe "Trip.is(:rateable, :as => :my_trip_ratings) without additional properties" do
+    describe "Trip.is(:rateable, :rater => :user, :as => :my_trip_ratings) without additional properties" do
     
       before do
       
@@ -530,7 +530,7 @@ if HAS_SQLITE3 || HAS_MYSQL || HAS_POSTGRES
           property :id, Serial
         
           # will define TripRating
-          is :rateable, :as => :my_trip_ratings
+          is :rateable, :rater => :user, :as => :my_trip_ratings
         end
         
         User.auto_migrate!
@@ -561,7 +561,7 @@ if HAS_SQLITE3 || HAS_MYSQL || HAS_POSTGRES
     # --------------------------------------------------------------------------------------------------
     # --------------------------------------------------------------------------------------------------
     
-    describe "Trip.is(:rateable, :as => :my_trip_ratings) with togglable anonymity/rateability" do
+    describe "Trip.is(:rateable, :rater => :user, :as => :my_trip_ratings) with togglable anonymity/rateability" do
     
       before do
       
@@ -580,7 +580,7 @@ if HAS_SQLITE3 || HAS_MYSQL || HAS_POSTGRES
           property :anonymous_rating_enabled, Boolean, :nullable => false, :default => true
         
           # will define TripRating
-          is :rateable, :as => :my_trip_ratings
+          is :rateable, :rater => :user, :as => :my_trip_ratings
         end
         
         User.auto_migrate!
@@ -611,7 +611,7 @@ if HAS_SQLITE3 || HAS_MYSQL || HAS_POSTGRES
     # --------------------------------------------------------------------------------------------------
     # --------------------------------------------------------------------------------------------------
         
-    describe "Trip.is(:rateable, :timestamps => false) without additional properties" do
+    describe "Trip.is(:rateable, :rater => :user, :timestamps => false) without additional properties" do
     
       before do
       
@@ -627,7 +627,7 @@ if HAS_SQLITE3 || HAS_MYSQL || HAS_POSTGRES
           property :id, Serial
         
           # will define TripRating
-          is :rateable, :timestamps => false
+          is :rateable, :rater => :user, :timestamps => false
         end
         
         User.auto_migrate!
@@ -657,7 +657,7 @@ if HAS_SQLITE3 || HAS_MYSQL || HAS_POSTGRES
     # --------------------------------------------------------------------------------------------------
     # --------------------------------------------------------------------------------------------------
     
-    describe "Trip.is(:rateable, :timestamps => false) with togglable anonymity/rateability" do
+    describe "Trip.is(:rateable, :rater => :user, :timestamps => false) with togglable anonymity/rateability" do
     
       before do
       
@@ -676,7 +676,7 @@ if HAS_SQLITE3 || HAS_MYSQL || HAS_POSTGRES
           property :anonymous_rating_enabled, Boolean, :nullable => false, :default => true
         
           # will define TripRating
-          is :rateable, :timestamps => false
+          is :rateable, :rater => :user, :timestamps => false
         end
         
         User.auto_migrate!
@@ -753,6 +753,45 @@ if HAS_SQLITE3 || HAS_MYSQL || HAS_POSTGRES
     
     end
   
+    # --------------------------------------------------------------------------------------------------
+    # --------------------------------------------------------------------------------------------------
+
+    describe "Trip.is(:rateable) without additional properties" do
+
+      before do
+
+        unload_rating_infrastructure "Trip"
+
+        class Account
+          include DataMapper::Resource
+          property :id, Serial
+        end
+
+        class Trip
+          include DataMapper::Resource
+          property :id, Serial
+
+          # will define TripRating
+          is :rateable
+        end
+
+        Account.auto_migrate!
+        Trip.auto_migrate!
+        TripRating.auto_migrate!
+
+        @t1 = Trip.create(:id => 1)
+        @t2 = Trip.create(:id => 2)
+
+      end
+
+      it_should_behave_like "every rating"
+      it_should_behave_like "every enabled rating"
+      it_should_behave_like "every rateable where ratings can't be toggled"
+      it_should_behave_like "every rateable where anonymous ratings can't be toggled"
+      it_should_behave_like "allowed_ratings have not been changed"
+
+    end
+
   end
-  
+
 end
