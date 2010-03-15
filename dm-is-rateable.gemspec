@@ -19,6 +19,7 @@ Gem::Specification.new do |s|
   ]
   s.files = [
     ".gitignore",
+     "Gemfile",
      "History.txt",
      "LICENSE",
      "Manifest.txt",
@@ -26,6 +27,7 @@ Gem::Specification.new do |s|
      "Rakefile",
      "TODO",
      "VERSION",
+     "dm-is-rateable.gemspec",
      "lib/dm-is-rateable.rb",
      "lib/dm-is-rateable/is/rateable.rb",
      "lib/dm-is-rateable/is/version.rb",
