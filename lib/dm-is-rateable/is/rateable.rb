@@ -91,7 +91,7 @@ module DataMapper
           rater_opts = options[:rater]
           rater_name = rater_opts.is_a?(Hash) ? (rater_opts.delete(:name) || :user_id) : rater_fk(rater_opts)
           rater_type = rater_opts.is_a?(Hash) ? (rater_opts.delete(:type) || Integer)  : Integer
-          rater_property_opts = rater_opts.is_a?(Hash) ? rater_opts : { :nullable => false }
+          rater_property_opts = rater_opts.is_a?(Hash) ? rater_opts : { :required => true }
           rater_property_opts.merge!(:min => 0) if rater_type == Integer # Match referenced column type
           rater_association = rater_name.to_s.gsub(/_id/, '').to_sym
 
@@ -109,6 +109,7 @@ module DataMapper
         enhance :rating, @rateable_model do
 
           property :rating, rating_type, :nullable => false
+          property :rating, rating_type, :required => true
 
           if options[:rater]
 
