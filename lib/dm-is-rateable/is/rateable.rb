@@ -46,24 +46,24 @@ module DataMapper
           :as => nil,
           :model => "#{self}Rating"
         }.merge(options)
-        
-        @allowed_ratings = options[:allowed_ratings]        
-        class_inheritable_accessor :allowed_ratings
-        
-        @rateable_model = options[:model]
-        class_inheritable_accessor :rateable_model
-        
-        @rateable_key = @rateable_model.snake_case.to_sym
-        class_inheritable_accessor :rateable_key
-        
+
+        class_attribute :allowed_ratings
+        allowed_ratings = options[:allowed_ratings]
+
+        class_attribute :rateable_model
+        rateable_model = options[:model]
+
+        class_attribute :rateable_key
+        rateable_key = rateable_model.underscore.to_sym
+
         remix n, Rating, :as => options[:as], :model => options[:model]
-        
-        @remixed_rating = remixables[:rating]
-        class_inheritable_reader :remixed_rating
-        
-        if @remixed_rating[:reader] != :ratings
+
+        class_attribute :remixed_rating
+        remixed_rating = remixables[:rating]
+
+        if remixed_rating[:reader] != :ratings
           self.class_eval(<<-EOS, __FILE__, __LINE__ + 1)
-            alias :ratings :#{@remixed_rating[rateable_key][:reader]}
+            alias :ratings :#{remixed_rating[rateable_key][:reader]}
           EOS
         end
 
@@ -83,8 +83,10 @@ module DataMapper
         # prepare rating enhancements
 
         def rater_fk(name)
-          name ? Extlib::Inflection.foreign_key(name.to_s.singular).to_sym : :user_id
+          name ? ActiveSupport::Inflector.foreign_key(name.to_s.singular).to_sym : :user_id
         end
+
+        class_attribute :rater_fk
 
         if options[:rater]
 
@@ -95,20 +97,18 @@ module DataMapper
           rater_property_opts.merge!(:min => 0) if rater_type == Integer # Match referenced column type
           rater_association = rater_name.to_s.gsub(/_id/, '').to_sym
 
-          @rater_fk = rater_name
+          rater_fk = rater_name
 
         else
-          @rater_fk = nil # no rater association established
+          rater_fk = nil # no rater association established
         end
 
-        class_inheritable_reader :rater_fk
 
         # close on this because enhance will class_eval in remixable model scope 
         parent_key = self.rateable_fk
 
-        enhance :rating, @rateable_model do
+        enhance :rating, rateable_model do
 
-          property :rating, rating_type, :nullable => false
           property :rating, rating_type, :required => true
 
           if options[:rater]
@@ -146,8 +146,8 @@ module DataMapper
         end
         
         def rateable_fk
-          demodulized_name = Extlib::Inflection.demodulize(self.name)
-          Extlib::Inflection.foreign_key(demodulized_name).to_sym
+          demodulized_name = ActiveSupport::Inflector.demodulize(self.name)
+          ActiveSupport::Inflector.foreign_key(demodulized_name).to_sym
         end
 
       end
